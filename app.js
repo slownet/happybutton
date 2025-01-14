@@ -41,25 +41,29 @@ function createRipple(event) {
     });
 }
 
-// Handle button press start
-happyButton.addEventListener('mousedown', (e) => {
+// Unified handler for both mouse and touch events
+function handlePress(e) {
+    e.preventDefault();
     pressStartTime = new Date();
-    createRipple(e);
-    telegram.HapticFeedback.impactOccurred('light');
-});
+    createRipple(e.touches ? e.touches[0] : e);
+    telegram.HapticFeedback.notificationOccurred('success');
+}
 
-// Handle button release
-happyButton.addEventListener('mouseup', () => {
+function handleRelease(e) {
+    e.preventDefault();
+    if (!pressStartTime) return; // Guard against undefined pressStartTime
+
     const pressDuration = new Date() - pressStartTime;
     const happiness = Math.min(pressDuration / 1000, 5);
     
-    // Different haptic feedback based on duration
+    // Use different notification types for varied feedback
     if (happiness < 1) {
-        telegram.HapticFeedback.impactOccurred('light');
+        telegram.HapticFeedback.notificationOccurred('warning');
     } else if (happiness < 3) {
-        telegram.HapticFeedback.impactOccurred('medium');
+        telegram.HapticFeedback.notificationOccurred('success');
     } else {
-        telegram.HapticFeedback.impactOccurred('heavy');
+        telegram.HapticFeedback.notificationOccurred('success');
+        telegram.HapticFeedback.notificationOccurred('success');
     }
     
     // Update background color
@@ -79,7 +83,26 @@ happyButton.addEventListener('mouseup', () => {
     // Update stats
     happyMomentsCount++;
     updateStats(happiness);
-});
+    
+    // Reset pressStartTime
+    pressStartTime = null;
+}
+
+// Remove previous event listeners and add new unified ones
+happyButton.addEventListener('mousedown', handlePress);
+happyButton.addEventListener('mouseup', handleRelease);
+happyButton.addEventListener('mouseleave', handleRelease);
+
+happyButton.addEventListener('touchstart', handlePress);
+happyButton.addEventListener('touchend', handleRelease);
+happyButton.addEventListener('touchcancel', handleRelease);
+
+// Prevent default touch behavior to avoid scrolling
+document.body.addEventListener('touchmove', (e) => {
+    if (pressStartTime) {
+        e.preventDefault();
+    }
+}, { passive: false });
 
 function updateStats(happiness) {
     const intensity = happiness < 1 ? 'small' : happiness < 3 ? 'medium' : 'big';
@@ -94,31 +117,4 @@ function updateStats(happiness) {
             buttons: [{type: 'ok'}]
         });
     }
-}
-
-// Add touch support for mobile devices
-happyButton.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    pressStartTime = new Date();
-    createRipple(e.touches[0]);
-    telegram.HapticFeedback.impactOccurred('light');
-});
-
-happyButton.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const pressDuration = new Date() - pressStartTime;
-    const happiness = Math.min(pressDuration / 1000, 5);
-    
-    if (happiness < 1) {
-        telegram.HapticFeedback.impactOccurred('light');
-    } else if (happiness < 3) {
-        telegram.HapticFeedback.impactOccurred('medium');
-    } else {
-        telegram.HapticFeedback.impactOccurred('heavy');
-    }
-    
-    orangeIntensity = Math.min(orangeIntensity + (happiness * 2), 100);
-    body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
-    
-    updateStats(happiness);
-}); 
+} 
