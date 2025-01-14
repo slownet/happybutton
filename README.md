@@ -38,11 +38,13 @@ A simple yet engaging Telegram Mini App created to test the capabilities of Curs
 
 This app was created through an interactive session with Claude 3.5-Sonnet using Cursor IDE. The entire development process, from concept to implementation, was completed in a single session, demonstrating the efficiency of AI-assisted development.
 
-## 📦 Project Structure 
+## 📦 Project Structure
 
+```text
 ├── index.html # Main HTML structure
 ├── styles.css # Styling and animations
 └── app.js # Application logic and Telegram integration
+```
 
 ## 🔧 Setup for Development
 
