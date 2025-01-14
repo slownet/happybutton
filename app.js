@@ -35,16 +35,23 @@ happyButton.addEventListener('mousedown', (e) => {
     pressStartTime = new Date();
     createRipple(e);
     
-    // Trigger vibration
-    if (navigator.vibrate) {
-        navigator.vibrate(100);
-    }
+    // Use Telegram's native haptic feedback
+    telegram.HapticFeedback.impactOccurred('light');
 });
 
 // Handle button release
 happyButton.addEventListener('mouseup', () => {
     const pressDuration = new Date() - pressStartTime;
-    const happiness = Math.min(pressDuration / 1000, 5); // Cap at 5 seconds
+    const happiness = Math.min(pressDuration / 1000, 5);
+    
+    // Different haptic feedback based on duration
+    if (happiness < 1) {
+        telegram.HapticFeedback.impactOccurred('light');
+    } else if (happiness < 3) {
+        telegram.HapticFeedback.impactOccurred('medium');
+    } else {
+        telegram.HapticFeedback.impactOccurred('heavy');
+    }
     
     // Update background color
     orangeIntensity = Math.min(orangeIntensity + (happiness * 2), 100);
