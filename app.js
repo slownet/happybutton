@@ -1,12 +1,23 @@
 let pressStartTime;
 let orangeIntensity = 0;
+let happyMomentsCount = 0;
 
 // Initialize Telegram WebApp
 const telegram = window.Telegram.WebApp;
 telegram.ready();
 
+// Set up the main theme
+telegram.setHeaderColor('secondary_bg_color');
+telegram.expand(); // Make app full height
+
 const happyButton = document.getElementById('happyButton');
 const body = document.body;
+
+// Create stats display
+const stats = document.createElement('div');
+stats.className = 'stats';
+stats.textContent = 'No happy moments recorded yet today';
+document.querySelector('.container').appendChild(stats);
 
 // Function to create ripple effect
 function createRipple(event) {
@@ -34,8 +45,6 @@ function createRipple(event) {
 happyButton.addEventListener('mousedown', (e) => {
     pressStartTime = new Date();
     createRipple(e);
-    
-    // Use Telegram's native haptic feedback
     telegram.HapticFeedback.impactOccurred('light');
 });
 
@@ -66,17 +75,33 @@ happyButton.addEventListener('mouseup', () => {
     } else {
         smiley.textContent = '🤗';
     }
+
+    // Update stats
+    happyMomentsCount++;
+    updateStats(happiness);
 });
+
+function updateStats(happiness) {
+    const intensity = happiness < 1 ? 'small' : happiness < 3 ? 'medium' : 'big';
+    stats.textContent = `${happyMomentsCount} happy ${happyMomentsCount === 1 ? 'moment' : 'moments'} today (last one was ${intensity})`;
+    
+    // Show popup for significant moments
+    if (happiness >= 3) {
+        telegram.HapticFeedback.notificationOccurred('success');
+        telegram.showPopup({
+            title: '🌟 Wonderful Moment!',
+            message: 'You just recorded a very happy moment. Keep spreading joy!',
+            buttons: [{type: 'ok'}]
+        });
+    }
+}
 
 // Add touch support for mobile devices
 happyButton.addEventListener('touchstart', (e) => {
     e.preventDefault();
     pressStartTime = new Date();
     createRipple(e.touches[0]);
-    
-    if (navigator.vibrate) {
-        navigator.vibrate(100);
-    }
+    telegram.HapticFeedback.impactOccurred('light');
 });
 
 happyButton.addEventListener('touchend', (e) => {
@@ -84,6 +109,16 @@ happyButton.addEventListener('touchend', (e) => {
     const pressDuration = new Date() - pressStartTime;
     const happiness = Math.min(pressDuration / 1000, 5);
     
+    if (happiness < 1) {
+        telegram.HapticFeedback.impactOccurred('light');
+    } else if (happiness < 3) {
+        telegram.HapticFeedback.impactOccurred('medium');
+    } else {
+        telegram.HapticFeedback.impactOccurred('heavy');
+    }
+    
     orangeIntensity = Math.min(orangeIntensity + (happiness * 2), 100);
     body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
+    
+    updateStats(happiness);
 }); 

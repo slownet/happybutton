@@ -5,45 +5,57 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #fff;
+    background-color: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #000);
     transition: background-color 0.5s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
 .container {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 20px;
 }
 
 .happy-button {
-    width: 200px;
-    height: 200px;
+    width: 180px;
+    height: 180px;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(145deg, #ff8c00, #ffd700);
+    background: var(--tg-theme-button-color, linear-gradient(145deg, #ff8c00, #ffd700));
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
 }
 
 .happy-button:active {
-    transform: scale(0.95);
+    transform: scale(0.92);
 }
 
 .smiley {
-    font-size: 80px;
+    font-size: 70px;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
 
+.stats {
+    text-align: center;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.08));
+    font-size: 14px;
+}
+
 .ripple {
     position: absolute;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--tg-theme-link-color, rgba(255, 255, 255, 0.4));
     transform: scale(0);
     animation: ripple 0.6s linear;
     pointer-events: none;
