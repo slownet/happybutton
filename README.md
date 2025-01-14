@@ -39,3 +39,32 @@ A simple yet engaging Telegram Mini App created to test the capabilities of Curs
 This app was created through an interactive session with Claude 3.5-Sonnet using Cursor IDE. The entire development process, from concept to implementation, was completed in a single session, demonstrating the efficiency of AI-assisted development.
 
 ## 📦 Project Structure 
+
+├── index.html # Main HTML structure
+├── styles.css # Styling and animations
+└── app.js # Application logic and Telegram integration
+
+## 🔧 Setup for Development
+
+1. Clone the repository
+2. Create a Telegram bot using @BotFather
+3. Set up a Mini App using the `/newapp` command
+4. Host the files (using GitHub Pages, Netlify, or your preferred hosting)
+5. Configure the Mini App URL in BotFather
+
+## 💡 Learning Outcomes
+
+- Rapid prototyping with AI assistance
+- Telegram Mini App development best practices
+- Integration of native Telegram features
+- Real-time user interaction handling
+
+## 📄 License
+
+MIT License
+
+## 🙏 Acknowledgments
+
+- Created with Cursor IDE
+- Powered by Claude 3.5-Sonnet
+- Telegram Team for the Web App API
