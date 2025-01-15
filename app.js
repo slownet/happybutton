@@ -19,48 +19,67 @@ stats.className = 'stats';
 stats.textContent = 'Loading...';
 document.querySelector('.container').appendChild(stats);
 
-// Initialize CloudStorage
+// Initialize data with local storage fallback
 async function initializeData() {
     try {
-        // Get stored data using cloud storage
+        // First try to get data from Telegram CloudStorage
         const cloudData = await telegram.CloudStorage.getItem('happyData');
-        console.log('Loaded cloud data:', cloudData); // Debug log
         
         if (cloudData) {
             const parsedData = JSON.parse(cloudData);
             happyMomentsCount = parseInt(parsedData.count) || 0;
             orangeIntensity = parseFloat(parsedData.intensity) || 0;
-            
-            // Update UI with stored data
-            updateStats({ happiness: 0 });
-            if (orangeIntensity > 0) {
-                body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
+        } else {
+            // If no cloud data, try local storage
+            const localData = localStorage.getItem('happyData');
+            if (localData) {
+                const parsedData = JSON.parse(localData);
+                happyMomentsCount = parseInt(parsedData.count) || 0;
+                orangeIntensity = parseFloat(parsedData.intensity) || 0;
             }
-            console.log('Initialized with count:', happyMomentsCount); // Debug log
         }
     } catch (error) {
         console.error('Error loading data:', error);
+        // Try local storage as fallback
+        try {
+            const localData = localStorage.getItem('happyData');
+            if (localData) {
+                const parsedData = JSON.parse(localData);
+                happyMomentsCount = parseInt(parsedData.count) || 0;
+                orangeIntensity = parseFloat(parsedData.intensity) || 0;
+            }
+        } catch (e) {
+            console.error('Local storage fallback failed:', e);
+        }
+    } finally {
+        // Always update UI regardless of data source
+        updateStats({ happiness: 0 });
+        if (orangeIntensity > 0) {
+            body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
+        }
     }
 }
 
-// Save data to CloudStorage
+// Save data with local storage fallback
 async function saveData() {
+    const data = JSON.stringify({
+        count: happyMomentsCount,
+        intensity: orangeIntensity,
+        lastUpdated: new Date().toISOString()
+    });
+
     try {
-        const data = JSON.stringify({
-            count: happyMomentsCount,
-            intensity: orangeIntensity,
-            lastUpdated: new Date().toISOString()
-        });
+        // Try to save to Telegram CloudStorage
         await telegram.CloudStorage.setItem('happyData', data);
-        console.log('Saved data:', data); // Debug log
     } catch (error) {
-        console.error('Error saving data:', error);
-        // Show error to user
-        telegram.showPopup({
-            title: 'Error Saving',
-            message: 'Could not save your happy moment. Please try again.',
-            buttons: [{type: 'ok'}]
-        });
+        console.error('Cloud save failed:', error);
+    }
+
+    // Always save to local storage as backup
+    try {
+        localStorage.setItem('happyData', data);
+    } catch (error) {
+        console.error('Local storage save failed:', error);
     }
 }
 
@@ -87,8 +106,13 @@ function createRipple(event) {
 }
 
 function updateStats(happiness) {
+    if (happyMomentsCount === 0) {
+        stats.textContent = 'No happy moments recorded yet today';
+        return;
+    }
+
     const intensity = happiness < 1 ? 'small' : happiness < 3 ? 'medium' : 'big';
-    stats.textContent = `${happyMomentsCount} happy ${happyMomentsCount === 1 ? 'moment' : 'moments'} today (last one was ${intensity})`;
+    stats.textContent = `${happyMomentsCount} happy ${happyMomentsCount === 1 ? 'moment' : 'moments'} today${happiness > 0 ? ` (last one was ${intensity})` : ''}`;
     
     if (happiness >= 3) {
         telegram.HapticFeedback.notificationOccurred('success');
@@ -154,16 +178,16 @@ async function handleEnd(event) {
     pressStartTime = null;
 }
 
-// Wait for Telegram.WebApp to be ready before initializing
-telegram.onEvent('viewportChanged', async () => {
-    if (telegram.isExpanded) {
-        await initializeData();
-    }
+// Initialize as soon as possible
+document.addEventListener('DOMContentLoaded', () => {
+    initializeData();
 });
 
-// Initialize immediately as well
-initializeData().then(() => {
-    console.log('Initial loading complete');
+// Also initialize when Telegram.WebApp is ready
+telegram.onEvent('viewportChanged', () => {
+    if (telegram.isExpanded) {
+        initializeData();
+    }
 });
 
 // Remove any existing listeners first
