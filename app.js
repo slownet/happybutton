@@ -16,30 +16,35 @@ const body = document.body;
 // Create stats display
 const stats = document.createElement('div');
 stats.className = 'stats';
-stats.textContent = 'No happy moments recorded yet today';
+stats.textContent = 'Loading...';
 document.querySelector('.container').appendChild(stats);
 
 // Initialize CloudStorage
-const initializeData = async () => {
+async function initializeData() {
     try {
-        // Get stored data
-        const data = await telegram.CloudStorage.getItem('happyData');
-        if (data) {
-            const parsedData = JSON.parse(data);
-            happyMomentsCount = parsedData.count || 0;
-            orangeIntensity = parsedData.intensity || 0;
+        // Get stored data using cloud storage
+        const cloudData = await telegram.CloudStorage.getItem('happyData');
+        console.log('Loaded cloud data:', cloudData); // Debug log
+        
+        if (cloudData) {
+            const parsedData = JSON.parse(cloudData);
+            happyMomentsCount = parseInt(parsedData.count) || 0;
+            orangeIntensity = parseFloat(parsedData.intensity) || 0;
             
             // Update UI with stored data
             updateStats({ happiness: 0 });
-            updateBackground(0);
+            if (orangeIntensity > 0) {
+                body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
+            }
+            console.log('Initialized with count:', happyMomentsCount); // Debug log
         }
     } catch (error) {
-        console.log('Error loading data:', error);
+        console.error('Error loading data:', error);
     }
-};
+}
 
 // Save data to CloudStorage
-const saveData = async () => {
+async function saveData() {
     try {
         const data = JSON.stringify({
             count: happyMomentsCount,
@@ -47,10 +52,17 @@ const saveData = async () => {
             lastUpdated: new Date().toISOString()
         });
         await telegram.CloudStorage.setItem('happyData', data);
+        console.log('Saved data:', data); // Debug log
     } catch (error) {
-        console.log('Error saving data:', error);
+        console.error('Error saving data:', error);
+        // Show error to user
+        telegram.showPopup({
+            title: 'Error Saving',
+            message: 'Could not save your happy moment. Please try again.',
+            buttons: [{type: 'ok'}]
+        });
     }
-};
+}
 
 // Function to create ripple effect
 function createRipple(event) {
@@ -111,7 +123,7 @@ function handleStart(event) {
     telegram.HapticFeedback.notificationOccurred('warning');
 }
 
-function handleEnd(event) {
+async function handleEnd(event) {
     event.preventDefault();
     if (!pressStartTime) return;
 
@@ -136,14 +148,23 @@ function handleEnd(event) {
     updateStats(happiness);
     
     // Save data after each interaction
-    saveData();
+    await saveData(); // Wait for save to complete
+    console.log('Saved count:', happyMomentsCount); // Debug log
     
-    // Reset press time
     pressStartTime = null;
 }
 
-// Initialize data when app loads
-initializeData();
+// Wait for Telegram.WebApp to be ready before initializing
+telegram.onEvent('viewportChanged', async () => {
+    if (telegram.isExpanded) {
+        await initializeData();
+    }
+});
+
+// Initialize immediately as well
+initializeData().then(() => {
+    console.log('Initial loading complete');
+});
 
 // Remove any existing listeners first
 happyButton.replaceWith(happyButton.cloneNode(true));
