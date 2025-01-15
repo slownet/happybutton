@@ -1,6 +1,8 @@
 let pressStartTime;
 let orangeIntensity = 0;
 let happyMomentsCount = 0;
+let vibrationInterval;
+let vibrationIntensity = 0;
 
 // Initialize Telegram WebApp
 const telegram = window.Telegram.WebApp;
@@ -140,21 +142,67 @@ function updateBackground(happiness) {
     body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
 }
 
+function startVibrationPattern() {
+    // Clear any existing interval
+    if (vibrationInterval) {
+        clearInterval(vibrationInterval);
+    }
+    
+    vibrationIntensity = 0;
+    
+    // Start new vibration pattern
+    vibrationInterval = setInterval(() => {
+        vibrationIntensity++;
+        
+        // Adjust vibration pattern based on duration
+        if (vibrationIntensity < 4) {
+            telegram.HapticFeedback.impactOccurred('light');
+        } else if (vibrationIntensity < 8) {
+            telegram.HapticFeedback.impactOccurred('medium');
+        } else {
+            telegram.HapticFeedback.impactOccurred('heavy');
+        }
+        
+        // Update emoji based on current intensity
+        const smiley = document.querySelector('.smiley');
+        if (vibrationIntensity < 4) {
+            smiley.textContent = '😊';
+        } else if (vibrationIntensity < 8) {
+            smiley.textContent = '😃';
+        } else {
+            smiley.textContent = '🤗';
+        }
+        
+    }, 500); // Increase intensity every 500ms
+}
+
+function stopVibrationPattern() {
+    if (vibrationInterval) {
+        clearInterval(vibrationInterval);
+        vibrationInterval = null;
+    }
+}
+
 function handleStart(event) {
     event.preventDefault();
     pressStartTime = Date.now();
     createRipple(event.touches ? event.touches[0] : event);
-    telegram.HapticFeedback.notificationOccurred('warning');
+    
+    // Start continuous vibration
+    startVibrationPattern();
 }
 
-async function handleEnd(event) {
+function handleEnd(event) {
     event.preventDefault();
     if (!pressStartTime) return;
+
+    // Stop vibration pattern
+    stopVibrationPattern();
 
     const pressDuration = (Date.now() - pressStartTime) / 1000;
     const happiness = Math.min(pressDuration, 5);
 
-    // Haptic feedback
+    // Final stronger vibration to indicate release
     if (happiness < 1) {
         telegram.HapticFeedback.notificationOccurred('warning');
     } else if (happiness < 3) {
@@ -164,7 +212,6 @@ async function handleEnd(event) {
         setTimeout(() => telegram.HapticFeedback.notificationOccurred('success'), 150);
     }
 
-    updateEmoji(happiness);
     updateBackground(happiness);
     
     // Increment counter and update stats
@@ -172,11 +219,15 @@ async function handleEnd(event) {
     updateStats(happiness);
     
     // Save data after each interaction
-    await saveData(); // Wait for save to complete
-    console.log('Saved count:', happyMomentsCount); // Debug log
+    saveData();
     
     pressStartTime = null;
 }
+
+// Make sure to clean up on page unload
+window.addEventListener('unload', () => {
+    stopVibrationPattern();
+});
 
 // Initialize as soon as possible
 document.addEventListener('DOMContentLoaded', () => {
