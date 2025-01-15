@@ -19,6 +19,39 @@ stats.className = 'stats';
 stats.textContent = 'No happy moments recorded yet today';
 document.querySelector('.container').appendChild(stats);
 
+// Initialize CloudStorage
+const initializeData = async () => {
+    try {
+        // Get stored data
+        const data = await telegram.CloudStorage.getItem('happyData');
+        if (data) {
+            const parsedData = JSON.parse(data);
+            happyMomentsCount = parsedData.count || 0;
+            orangeIntensity = parsedData.intensity || 0;
+            
+            // Update UI with stored data
+            updateStats({ happiness: 0 });
+            updateBackground(0);
+        }
+    } catch (error) {
+        console.log('Error loading data:', error);
+    }
+};
+
+// Save data to CloudStorage
+const saveData = async () => {
+    try {
+        const data = JSON.stringify({
+            count: happyMomentsCount,
+            intensity: orangeIntensity,
+            lastUpdated: new Date().toISOString()
+        });
+        await telegram.CloudStorage.setItem('happyData', data);
+    } catch (error) {
+        console.log('Error saving data:', error);
+    }
+};
+
 // Function to create ripple effect
 function createRipple(event) {
     const button = event.currentTarget;
@@ -102,9 +135,15 @@ function handleEnd(event) {
     happyMomentsCount++;
     updateStats(happiness);
     
+    // Save data after each interaction
+    saveData();
+    
     // Reset press time
     pressStartTime = null;
 }
+
+// Initialize data when app loads
+initializeData();
 
 // Remove any existing listeners first
 happyButton.replaceWith(happyButton.cloneNode(true));
