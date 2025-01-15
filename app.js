@@ -2,7 +2,7 @@ let pressStartTime;
 let orangeIntensity = 0;
 let happyMomentsCount = 0;
 let vibrationInterval;
-let vibrationIntensity = 0;
+let currentVibrationLevel = 0;
 
 // Initialize Telegram WebApp
 const telegram = window.Telegram.WebApp;
@@ -142,32 +142,31 @@ function updateBackground(happiness) {
     body.style.backgroundColor = `rgb(255, ${255 - orangeIntensity * 1.5}, ${255 - orangeIntensity * 2})`;
 }
 
-function startVibrationPattern() {
-    // Clear any existing interval
-    if (vibrationInterval) {
-        clearInterval(vibrationInterval);
+function vibrateWithIntensity(level) {
+    // Create multiple vibrations to make it feel more continuous
+    for (let i = 0; i < level; i++) {
+        setTimeout(() => {
+            telegram.HapticFeedback.notificationOccurred('warning');
+        }, i * 50); // Spread vibrations over time
     }
+}
+
+function startContinuousVibration() {
+    currentVibrationLevel = 1;
     
-    vibrationIntensity = 0;
+    // Initial vibration
+    vibrateWithIntensity(currentVibrationLevel);
     
-    // Start new vibration pattern
+    // Set up continuous vibration with increasing intensity
     vibrationInterval = setInterval(() => {
-        vibrationIntensity++;
-        
-        // Adjust vibration pattern based on duration
-        if (vibrationIntensity < 4) {
-            telegram.HapticFeedback.impactOccurred('light');
-        } else if (vibrationIntensity < 8) {
-            telegram.HapticFeedback.impactOccurred('medium');
-        } else {
-            telegram.HapticFeedback.impactOccurred('heavy');
-        }
+        currentVibrationLevel = Math.min(currentVibrationLevel + 1, 5);
+        vibrateWithIntensity(currentVibrationLevel);
         
         // Update emoji based on current intensity
         const smiley = document.querySelector('.smiley');
-        if (vibrationIntensity < 4) {
+        if (currentVibrationLevel < 2) {
             smiley.textContent = '😊';
-        } else if (vibrationIntensity < 8) {
+        } else if (currentVibrationLevel < 4) {
             smiley.textContent = '😃';
         } else {
             smiley.textContent = '🤗';
@@ -176,7 +175,7 @@ function startVibrationPattern() {
     }, 500); // Increase intensity every 500ms
 }
 
-function stopVibrationPattern() {
+function stopVibration() {
     if (vibrationInterval) {
         clearInterval(vibrationInterval);
         vibrationInterval = null;
@@ -188,46 +187,42 @@ function handleStart(event) {
     pressStartTime = Date.now();
     createRipple(event.touches ? event.touches[0] : event);
     
-    // Start continuous vibration
-    startVibrationPattern();
+    // Start continuous vibration immediately
+    startContinuousVibration();
 }
 
 function handleEnd(event) {
     event.preventDefault();
     if (!pressStartTime) return;
 
-    // Stop vibration pattern
-    stopVibrationPattern();
+    // Stop ongoing vibration
+    stopVibration();
 
     const pressDuration = (Date.now() - pressStartTime) / 1000;
     const happiness = Math.min(pressDuration, 5);
 
-    // Final stronger vibration to indicate release
+    // Final vibration burst
     if (happiness < 1) {
         telegram.HapticFeedback.notificationOccurred('warning');
     } else if (happiness < 3) {
         telegram.HapticFeedback.notificationOccurred('success');
+        setTimeout(() => telegram.HapticFeedback.notificationOccurred('success'), 100);
     } else {
         telegram.HapticFeedback.notificationOccurred('success');
-        setTimeout(() => telegram.HapticFeedback.notificationOccurred('success'), 150);
+        setTimeout(() => telegram.HapticFeedback.notificationOccurred('success'), 100);
+        setTimeout(() => telegram.HapticFeedback.notificationOccurred('success'), 200);
     }
 
     updateBackground(happiness);
-    
-    // Increment counter and update stats
     happyMomentsCount++;
     updateStats(happiness);
-    
-    // Save data after each interaction
     saveData();
     
     pressStartTime = null;
 }
 
-// Make sure to clean up on page unload
-window.addEventListener('unload', () => {
-    stopVibrationPattern();
-});
+// Clean up on page unload
+window.addEventListener('unload', stopVibration);
 
 // Initialize as soon as possible
 document.addEventListener('DOMContentLoaded', () => {
